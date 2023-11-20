@@ -1,5 +1,7 @@
 if car.isAIControlled then return end
 
+local CLUTCH_MOD = require "launch_assist_clutch"
+
 local lib = require "AGALib"
 
 -- CONFIG =====================================================================================
@@ -75,9 +77,9 @@ local targetFrontSlipSmoother  = lib.SmoothTowards:new( 0.05, 0.05,  0.0, 15.0, 
 local groundedSmoother         = lib.SmoothTowards:new( 5.0,  1.0,   0.0,  1.0,  1.0) -- Smooths the value that indicates if any of the front wheels are grounded
 local frontSlipDisplaySmoother = lib.SmoothTowards:new(10.0,  0.05,  0.0,  1.0,  0.0) -- Smooths the relative front slip value sent to the UI app for visualization
 local rearSlipDisplaySmoother  = lib.SmoothTowards:new(10.0,  0.05,  0.0,  1.0,  0.0) -- Smooths the relative rear slip value sent to the UI app for visualization
-local vehicleSteeringLock      = math.NaN -- Degrees
+local vehicleSteeringLock      = 0 / 0 -- math.NaN -- Degrees
 
-local gameCfg                  = ac.INIConfig.load(ac.getFolder(ac.FolderID.Cfg) .. "/controls.ini")
+local gameCfg                  = ac.INIConfig.load(ac.getFolder("ac.FolderID.Cfg") .. "/controls.ini")
 local kbThrottleBind           = ac.KeyIndex.Up
 local kbBrakeBind              = ac.KeyIndex.Down
 local kbSteerLBind             = ac.KeyIndex.Left
@@ -100,7 +102,7 @@ local calibrationSavedWheels   = false
 local calibrationSuccess       = false
 local calibrationTries         = 0
 local calibrationMaxTries      = 2
-local calibrationRateMult      = math.NaN
+local calibrationRateMult      = 0 / 0 -- math.NaN
 
 local localWheelPositions      = {[0] = vec3(0.7, -0.2, 1.3), vec3(-0.7, -0.2, 1.3), vec3(0.7, -0.2, -1.3), vec3(-0.7, -0.2, -1.3)} -- Local positions of all 4 wheels (0-based index). Only set once, not updated dynamically.
 local fAxlePos                 = vec3(0.0, -0.2,  1.3)
@@ -136,6 +138,10 @@ local function updateConfig(inputData)
     savedCfg.maxDynamicLimitReduction = uiData.maxDynamicLimitReduction
 
     uiData._appCanRun = true
+end
+
+function math.isNaN(x)
+    return x ~= x
 end
 
 local function sanitizeSteeringInput(value)
@@ -194,9 +200,9 @@ local function retryCalibration(silent)
     calibrationLockDelay = 0
     steeringExponent = 0.95
     fastLearningTime = 0
-    calibrationRateMult = math.NaN
+    calibrationRateMult = 0 / 0 -- math.NaN
     table.clear(steeringCurveSamples)
-    vehicleSteeringLock = math.NaN
+    vehicleSteeringLock = 0 / 0 -- math.NaN
 end
 
 -- Hijacks the throttle / brake / handbrake/ steering inputs to perform calibration. Returns `true` if the calibration is over or aborted, `false` if it's in progress.
@@ -281,7 +287,7 @@ local function performCalibration(inputData, vehicle, inverseBodyTransform, dt)
             if inputData.steer < 1e-6 then
                 calibrationStage = calibrationStage + 1
                 calibrationSuccess = true
-                if vehicleSteeringLock == -1 then vehicleSteeringLock = math.NaN end
+                if vehicleSteeringLock == -1 then vehicleSteeringLock = 0 / 0 end -- math.NaN
             end
         end
 
@@ -547,8 +553,8 @@ local function processInitialInput(vData, kbMode, steeringRateMult, dt)
     return initialSteering, absInitialSteering
 end
 
-local autoClutchRaw = false
-local autoClutchSmoother = lib.SmoothTowards:new(4.0, 1.0, 0.0, 1.0, 0.0)
+--local autoClutchRaw = false
+--local autoClutchSmoother = lib.SmoothTowards:new(4.0, 1.0, 0.0, 1.0, 0.0)
 
 function script.update(dt)
     if car.isAIControlled or not car.physicsAvailable then return end
@@ -623,6 +629,8 @@ function script.update(dt)
     ac.debug("H) Intended steering angle",   string.format("%+.2f°", desiredSteering * vData.steeringLockDeg))
     ac.debug("I) Steering curve (measured)", string.format("%.3f",   vData.steeringCurveExponent))
     ac.debug("J) Extended physics",          vData.vehicle.extendedPhysics and "Enabled" or "Disabled")
+
+    CLUTCH_MOD.update()
 
 end
 
